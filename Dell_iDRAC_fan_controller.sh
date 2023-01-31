@@ -58,15 +58,10 @@ while true; do
   sleep $CHECK_INTERVAL &
   SLEEP_PROCESS_PID=$!
 
-  DATA=$(ipmitool -I $LOGIN_STRING sdr type temperature | grep degrees)
-  INLET_TEMPERATURE=$(echo "$DATA" | grep Inlet | grep -Po '\d{2}' | tail -1)
-  EXHAUST_TEMPERATURE=$(echo "$DATA" | grep Exhaust | grep -Po '\d{2}' | tail -1)
-  CPU_DATA=$(echo "$DATA" | grep "3\." | grep -Po '\d{2}')
-  CPU1_TEMPERATURE=$(echo $CPU_DATA | awk '{print $1;}')
-  CPU2_TEMPERATURE=$(echo $CPU_DATA | awk '{print $2;}')
-
-  CPU1_OVERHEAT () { [ $CPU1_TEMPERATURE -gt $CPU_TEMPERATURE_TRESHOLD ]; }
-  CPU2_OVERHEAT () { [ $CPU2_TEMPERATURE -gt $CPU_TEMPERATURE_TRESHOLD ]; }
+  DATA=$(ipmitool -I $LOGIN_STRING sdr type temperature | grep degrees | grep "Ambient Temp" | grep "\d{2}")
+  
+  CPU1_OVERHEAT () { [ $DATA -gt $CPU_TEMPERATURE_TRESHOLD ]; }
+  CPU2_OVERHEAT () { [ 0 -gt $CPU_TEMPERATURE_TRESHOLD ]; }
 
   COMMENT=" -"
   if CPU1_OVERHEAT
@@ -110,7 +105,7 @@ while true; do
     echo "   Date & time     Inlet  CPU 1  CPU 2  Exhaust          Active fan speed profile          Comment"
     i=0
   fi
-  printf "%12s  %3d°C  %3d°C  %3d°C  %5d°C  %40s  %s\n" "$(date +"%d-%m-%y %H:%M:%S")" $INLET_TEMPERATURE $CPU1_TEMPERATURE $CPU2_TEMPERATURE $EXHAUST_TEMPERATURE "$CURRENT_FAN_CONTROL_PROFILE" "$COMMENT"
+  printf "%12s  %3d°C  %40s  %s\n" "$(date +"%d-%m-%y %H:%M:%S")" $INLET_TEMPERATURE $DATA "$CURRENT_FAN_CONTROL_PROFILE" "$COMMENT"
 
   ((i++))
   wait $SLEEP_PROCESS_PID
